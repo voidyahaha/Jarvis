@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Aether Assistant</string>
+    <string name="accessibility_description">Aether Assistant uses accessibility to perform actions you request, such as tapping buttons, reading text on screen and typing. Nothing is done without your instruction, and sensitive actions always ask for confirmation.</string>
+</resources>

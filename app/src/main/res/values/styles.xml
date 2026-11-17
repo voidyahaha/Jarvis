@@ -1,0 +1,7 @@
+<resources>
+    <style name="Theme.AetherAssistant" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#05080F</item>
+        <item name="android:statusBarColor">#05080F</item>
+        <item name="android:navigationBarColor">#05080F</item>
+    </style>
+</resources>

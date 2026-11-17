@@ -1,0 +1,65 @@
+name: Build Aether APK and upload to GoFile
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: '8.9'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK platform and build tools
+        run: |
+          yes | sdkmanager --licenses > /dev/null 2>&1 || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0" "platform-tools"
+
+      - name: Build debug APK
+        run: gradle assembleDebug --no-daemon --stacktrace
+
+      - name: Locate APK
+        id: apk
+        run: |
+          APK=$(find app/build/outputs/apk -name '*.apk' | head -n 1)
+          if [ -z "$APK" ]; then echo "No APK produced" >&2; exit 1; fi
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          ls -lh "$APK"
+
+      - name: Upload to GoFile (guest account)
+        id: gofile
+        run: |
+          RESPONSE=$(curl -s -X POST https://upload.gofile.io/uploadfile \
+            -F "file=@${{ steps.apk.outputs.path }}")
+          echo "$RESPONSE" > gofile-response.json
+          LINK=$(python3 -c "import json; d=json.load(open('gofile-response.json')); print(d.get('data',{}).get('downloadPage',''))")
+          if [ -z "$LINK" ]; then
+            echo "GoFile upload failed:" >&2
+            cat gofile-response.json >&2
+            exit 1
+          fi
+          echo "link=$LINK" >> "$GITHUB_OUTPUT"
+          echo "### Aether APK" >> "$GITHUB_STEP_SUMMARY"
+          echo "Download: $LINK" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Also attach APK as GitHub artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: aether-debug-apk
+          path: ${{ steps.apk.outputs.path }}
